@@ -1,48 +1,51 @@
-# COVID Hand Wash Stage Classification AI
+# Handwash Protocol Image Classifier
 
-![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
-![TensorFlow](https://img.shields.io/badge/TensorFlow-2.x-orange)
-![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-Latest-lightgrey)
-![Status](https://img.shields.io/badge/Academic_Grade-95%25-success)
+A deep learning image classification pipeline built in Python using TensorFlow and Keras to classify images into the 8 stages of the WHO hand hygiene protocol. The project applies transfer learning with EfficientNetB0, out-of-sample data cleaning using Cleanlab, and optimized data loading using `tf.data`.
 
-An end-to-end Machine Learning pipeline designed to classify the distinct stages of the World Health Organization (WHO) handwashing protocol. This project implements a rigorous data-centric workflow, utilizing out-of-sample feature space filtering via Cleanlab to identify and remove mislabelled or noisy dataset samples prior to training a deep Convolutional Neural Network (CNN).
+## Overview
 
----
+- **Input Resolution:** 150x150 RGB images
+- **Classes:** 8 stages (Stage 1 to Stage 8)
+- **Base Architecture:** Pretrained EfficientNetB0 (ImageNet weights)
+- **Data Cleaning:** Cleanlab with 5-fold cross-validation to remove mislabeled images
+- **Training Strategy:** Two-phase progressive training (frozen feature extractor followed by fine-tuning)
 
-## Table of Contents
-1. [Project Overview](#project-overview)
-2. [Key Features](#key-features)
-3. [Project Structure](#project-structure)
-4. [Pipeline and Architecture Workflow](#pipeline-and-architecture-workflow)
-5. [Dataset Cleaning Results](#dataset-cleaning-results)
-6. [Installation and Setup](#installation-and-setup)
-7. [Usage Instructions](#usage-instructions)
-8. [Model Evaluation](#model-evaluation)
+## Dataset & Preprocessing
 
----
+1. **Dataset Normalization:** Images are gathered from class directories, converted to RGB, resized to 150x150, and assigned 0-indexed integer labels.
+2. **Label Quality Control:** Feature vectors are extracted from the frozen backbone. Out-of-sample predicted probabilities are calculated using 5-fold stratified cross-validation. Cleanlab identifies and prunes label errors, reducing noise and improving data quality across the 8 stages.
+3. **Data Splitting:** Stratified split into:
+   - Train: 70%
+   - Validation: 15%
+   - Test: 15%
+4. **Data Pipeline:** Implemented using `tf.data` with mapping, batching (batch size 32), caching, and asynchronous prefetching.
 
-## Project Overview
-* **Evaluation Score:** 95%
-* **Objective:** Accurately categorize raw hand wash image frames into 8 sequential protocol stages.
-* **Architecture:** Transfer Learning utilizing a pretrained EfficientNetB0 backbone combined with a customized Dense classification head.
-* **Core Methodology:** Programmatic label noise identification via 5-fold cross-validated out-of-sample probability evaluations to isolate conflicting dataset points.
+## Model Architecture & Training
 
----
+- **Data Augmentation:** Random horizontal flips, slight rotation (0.05), and zoom (0.10).
+- **Classification Head:** GlobalAveragePooling2D followed by 30% Dropout and an 8-unit Dense softmax output layer.
+- **Phase 1 (Frozen Backbone):**
+  - EfficientNetB0 backbone weights are frozen.
+  - Optimizer: Adam (initial learning rate = 1e-3).
+  - Callbacks: EarlyStopping, ModelCheckpoint (saving the best validation loss), and ReduceLROnPlateau.
+- **Phase 2 (Fine-Tuning):**
+  - Unfreezes the top layers of the backbone.
+  - Optimizer: Adam with a lower learning rate (1e-5) to adjust weights without destroying pretrained feature representations.
 
-## Key Features
-* **Data-Centric AI:** Moves beyond standard hyperparameter tuning by programmatically correcting raw data.
-* **Optimized Data Pipeline:** Utilizes `tf.data` API for asynchronous prefetching, mapping, and caching, eliminating CPU/GPU bottlenecks.
-* **Progressive Fine-Tuning:** Implements a two-phase training strategy to preserve pretrained weights before slowly unfreezing deeper convolutional blocks.
-* **Automated Callbacks:** Integrates `EarlyStopping`, `ModelCheckpoint`, and `ReduceLROnPlateau` for optimal convergence.
+## Evaluation
 
----
+The model evaluates test set performance using:
+- Accuracy and Categorical Cross-Entropy Loss
+- Per-class Precision, Recall, and F1-score
+- Confusion matrix and largest-confusion sample analysis
 
-## Project Structure
+## Tech Stack
 
-```text
-handwash-protocol-image-classifier/
-│
-├── dataset/                                     # Directory containing the raw and cleaned image data
-├── CODEBASE_DOCS.md                             # Detailed architecture and codebase documentation
-├── handwash-protocol-image-classifier.ipynb     # Main executable Jupyter Notebook containing the full pipeline
-└── readme.md                                    # Project documentation and overview
+- Python
+- TensorFlow / Keras
+- Cleanlab
+- scikit-learn
+- NumPy
+- Pandas
+- Matplotlib
+- Pillow
